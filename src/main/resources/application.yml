@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: agent
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc:mysql://localhost:3306/agent
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  rabbitmq:
+    username: admin
+    password: admin
+    host: localhost
+    port: 5672
+  data:
+    redis:
+      database: 2
+      host: localhost
+      port: 6379
+  profiles:
+    active: prod
+
+server:
+  port: 8100
+  servlet:
+    context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+    # 忽略 favicon.ico 请求
+    favicon:
+      enabled: false
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.rea_lity.model.entity
+  configuration:
+    map-underscore-to-camel-case: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
+      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
+      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
+
+# OpenAPI 配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  packages-to-scan: com.rea_lity.controller
+  paths-to-match: /**
+  show-actuator: true
+
+# Knife4j 配置
+knife4j:
+  enable: true
+  production: false
+  basic:
+    enable: false
+  setting:
+    language: zh_cn

@@ -1,0 +1,15 @@
+package com.rea_lity;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+@MapperScan("com.rea_lity.mapper")
+public class AgentApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(AgentApplication.class, args);
+	}
+
+}
