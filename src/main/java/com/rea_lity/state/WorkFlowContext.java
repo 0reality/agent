@@ -1,5 +1,7 @@
 package com.rea_lity.state;
 
+import com.rea_lity.modle.ImageCollectionPlan;
+import com.rea_lity.modle.ImageResource;
 import com.rea_lity.modle.enums.RouterEnums;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,4 +51,14 @@ public class WorkFlowContext implements Serializable {
      * 对话ID
      */
     private Long conversationId;
+
+    /**
+     * 图片收集计划
+     */
+    private ImageCollectionPlan imageCollectionPlan;
+
+    /**
+     * 图片资源
+     */
+    private List<ImageResource> imageResources = new ArrayList<>();
 }

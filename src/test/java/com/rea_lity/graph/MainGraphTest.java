@@ -32,16 +32,6 @@ class MainGraphTest {
             System.out.println( item );
         }
 
-        WorkFlowContext initData1 = WorkFlowContext.builder()
-                .nodesOutput(new ArrayList<>())
-                .conversationId(1L)
-                .currentStepCount(0)
-                .initPrompt("在帮我设计一个登录页面在里面吧")
-                .build();
-        for (var item : compile.stream( Map.of( AiAgentContext.CONTEXT_KEY, initData1 ) ) ) {
-            System.out.println( item );
-        }
-
         WorkFlowContext initData2 = WorkFlowContext.builder()
                 .nodesOutput(new ArrayList<>())
                 .conversationId(1L)

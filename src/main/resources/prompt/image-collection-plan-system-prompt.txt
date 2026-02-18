@@ -42,7 +42,7 @@
   ],
   "illustrationTasks": [
     {
-      "query": "插画关键词"
+      "query": "插画关键词（最好用英文关键词）"
     }
   ],
   "diagramTasks": [

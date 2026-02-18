@@ -1,6 +1,8 @@
 package com.rea_lity.graph;
 
+import com.rea_lity.AiService.ImageCollectionPlanService;
 import com.rea_lity.modle.enums.RouterEnums;
+import com.rea_lity.nodes.ImageCollectionNode;
 import com.rea_lity.nodes.ImageCollectionPlanNode;
 import com.rea_lity.nodes.ProjectDesignNode;
 import com.rea_lity.nodes.RouterNode;
@@ -25,6 +27,7 @@ public class MainGraph {
         ProjectDesignNode projectDesignNode = SpringContextUtils.getBean(ProjectDesignNode.class);
         RouterNode routerNode = SpringContextUtils.getBean(RouterNode.class);
         ImageCollectionPlanNode imageCollectionPlanNode = SpringContextUtils.getBean(ImageCollectionPlanNode.class);
+        ImageCollectionNode imageCollectionNode = SpringContextUtils.getBean(ImageCollectionNode.class);
 
         EdgeAction<AiAgentContext> edgeAction = aiAgentContext -> {
             WorkFlowContext context = aiAgentContext.context();
@@ -36,6 +39,8 @@ public class MainGraph {
                 .addNode(ProjectDesignNode.NODE_NAME, node_async(projectDesignNode))
                 .addNode(RouterNode.NODE_NAME, node_async(routerNode))
                 .addNode(ImageCollectionPlanNode.NODE_NAME, node_async(imageCollectionPlanNode))
+                .addNode(ImageCollectionNode.NODE_NAME, node_async(imageCollectionNode))
+
                 // Define edges
                 .addEdge(START, RouterNode.NODE_NAME)
                 .addConditionalEdges(RouterNode.NODE_NAME, edge_async(edgeAction), Map.of(
@@ -44,6 +49,8 @@ public class MainGraph {
                         RouterEnums.PLAN.toString(), ProjectDesignNode.NODE_NAME
                 ))
                 .addEdge(ProjectDesignNode.NODE_NAME, END)
-                .addEdge(ImageCollectionPlanNode.NODE_NAME, END);
+                .addEdge(ImageCollectionPlanNode.NODE_NAME, ImageCollectionNode.NODE_NAME)
+                .addEdge(ImageCollectionNode.NODE_NAME, END)
+                ;
     }
 }

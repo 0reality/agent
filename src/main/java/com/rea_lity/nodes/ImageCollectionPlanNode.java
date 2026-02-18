@@ -28,6 +28,7 @@ public class ImageCollectionPlanNode implements NodeAction<AiAgentContext> {
             ImageCollectionPlan imageCollectionPlan = imageCollectionPlanService.planImageCollection(context.getConversationId(), context.getInitPrompt());
             log.info("图片收集计划结果：{}", imageCollectionPlan);
             context.getNodesOutput().add(imageCollectionPlan.toString());
+            context.setImageCollectionPlan(imageCollectionPlan);
         } catch (Exception e) {
             log.error("图片收集计划失败", e);
             context.getNodesOutput().add("图片收集计划失败");
