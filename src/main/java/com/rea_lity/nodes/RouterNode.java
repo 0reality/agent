@@ -6,6 +6,7 @@ import com.rea_lity.modle.enums.RouterEnums;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.stereotype.Component;
 
@@ -15,17 +16,25 @@ import java.util.Map;
  * 路由节点
  */
 @Component
-public class RouterNode {
+@Slf4j
+public class RouterNode implements NodeAction<AiAgentContext>{
+
+    public static final String NODE_NAME = "router";
 
     @Resource
     private RouterNodeService routerNodeService;
 
-    public RouterEnums apply(AiAgentContext aiAgentContext) {
+    public Map<String, Object> apply(AiAgentContext aiAgentContext) {
+        WorkFlowContext context = aiAgentContext.context();
         try {
-            WorkFlowContext context = aiAgentContext.context();
-            return routerNodeService.route(context.getConversationId(),context.getInitPrompt());
+            RouterEnums routed = routerNodeService.route(context.getConversationId(), context.getInitPrompt());
+            context.setRouter(routed);
         } catch (Exception e){
-            return RouterEnums.ERROR;
+            context.setRouter(RouterEnums.ERROR);
+            log.error("路由发生错误：", e);
+        } finally {
+            context.setNodeName(NODE_NAME);
         }
+        return Map.of(AiAgentContext.CONTEXT_KEY, context);
     }
 }

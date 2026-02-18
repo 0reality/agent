@@ -1,6 +1,6 @@
 package com.rea_lity.factory;
 
-import com.rea_lity.AiService.RouterNodeService;
+import com.rea_lity.AiService.ImageCollectionPlanService;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class RouterNodeServiceFactory {
+public class ImageCollectionPlanServiceFactory {
 
     @Resource
     private ChatModel chatModel;
@@ -18,8 +18,8 @@ public class RouterNodeServiceFactory {
     private ChatMemoryProvider chatMemoryProvider;
 
     @Bean
-    public RouterNodeService routerNodeService() {
-        return AiServices.builder(RouterNodeService.class)
+    public ImageCollectionPlanService imageCollectionPlanService() {
+        return AiServices.builder(ImageCollectionPlanService.class)
                 .chatMemoryProvider(chatMemoryProvider)
                 .chatModel(chatModel)
                 .build();

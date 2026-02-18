@@ -1,8 +1,8 @@
 package com.rea_lity.tools;
 
 import cn.hutool.core.io.FileUtil;
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import dev.langchain4j.service.V;
 
 import java.nio.file.Paths;
 
@@ -11,7 +11,7 @@ public class OperationFile {
     private static final String ROOT_PATH = System.getProperty("user.dir") + "/userCode/";
 
     @Tool("return the content of file")
-    public String readFile(@V("the path of file") String filePath) {
+    public String readFile(@P("the path of file") String filePath) {
         filePath = ROOT_PATH + filePath;
         try {
             return FileUtil.readUtf8String(filePath);
@@ -21,7 +21,7 @@ public class OperationFile {
     }
 
     @Tool("write content to file")
-    public String writeFile(@V("the path of file") String filePath, @V("the content") String content) {
+    public String writeFile(@P("the path of file") String filePath, @P("the content") String content) {
         filePath = ROOT_PATH + filePath;
         try {
             FileUtil.writeBytes(content.getBytes(), filePath);
@@ -32,7 +32,7 @@ public class OperationFile {
     }
 
     @Tool("delete file")
-    public String deleteFile(@V("the path of file") String filePath) {
+    public String deleteFile(@P("the path of file") String filePath) {
         filePath = ROOT_PATH + filePath;
         try {
             FileUtil.del(filePath);
@@ -43,7 +43,7 @@ public class OperationFile {
     }
 
     @Tool("rename file")
-    public String renameFile(@V("the path of file") String filePath, @V("the new name") String newName) {
+    public String renameFile(@P("the path of file") String filePath, @P("the new name") String newName) {
         filePath = ROOT_PATH + filePath;
         try {
             FileUtil.rename(Paths.get(filePath), newName, true);
@@ -54,7 +54,7 @@ public class OperationFile {
     }
 
     @Tool("move file")
-    public String moveFile(@V("the path of file") String filePath, @V("the new path") String newPath) {
+    public String moveFile(@P("the path of file") String filePath, @P("the new path") String newPath) {
         filePath = ROOT_PATH + filePath;
         newPath = ROOT_PATH + newPath;
         try {
@@ -66,7 +66,7 @@ public class OperationFile {
     }
 
     @Tool("copy file")
-    public String copyFile(@V("the path of file") String filePath, @V("the new path") String newPath) {
+    public String copyFile(@P("the path of file") String filePath, @P("the new path") String newPath) {
         filePath = ROOT_PATH + filePath;
         newPath = ROOT_PATH + newPath;
         try {

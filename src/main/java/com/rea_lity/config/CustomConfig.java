@@ -9,4 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class CustomConfig {
     @Value("${dashscope.api-key}")
     private String DASHSCOPE_API_KEY;
+
+    @Value("${pexels.api-key}")
+    private String PEXELS_API_KEY;
 }
