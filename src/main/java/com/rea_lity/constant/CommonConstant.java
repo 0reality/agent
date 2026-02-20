@@ -14,5 +14,10 @@ public interface CommonConstant {
      * 降序
      */
     String SORT_ORDER_DESC = " descend";
-    
+
+    /**
+     * 默认更目录
+     */
+    String ROOT_PATH = System.getProperty("user.dir") + "/userCode/";
+
 }

@@ -3,6 +3,7 @@ package com.rea_lity.state;
 import com.rea_lity.modle.ImageCollectionPlan;
 import com.rea_lity.modle.ImageResource;
 import com.rea_lity.modle.enums.RouterEnums;
+import dev.langchain4j.service.TokenStream;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -61,4 +62,14 @@ public class WorkFlowContext implements Serializable {
      * 图片资源
      */
     private List<ImageResource> imageResources = new ArrayList<>();
+
+    /**
+     * 部署报错信息
+     */
+    private String deployError;
+
+    /**
+     * 流式输出处理
+     */
+    private TokenStream tokenStream;
 }

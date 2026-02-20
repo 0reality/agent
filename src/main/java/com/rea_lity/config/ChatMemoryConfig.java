@@ -19,6 +19,6 @@ public class ChatMemoryConfig {
     @Bean
     public ChatMemoryProvider chatMemoryProvider() {
         return memoryId -> globalMemoryStore.computeIfAbsent((Long) memoryId,
-            id -> MessageWindowChatMemory.withMaxMessages(10));
+            id -> MessageWindowChatMemory.withMaxMessages(50));
     }
 }

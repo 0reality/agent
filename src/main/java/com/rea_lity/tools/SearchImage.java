@@ -44,7 +44,7 @@ public class SearchImage {
                 log.info("请求成功，响应: {}", body);
                 JSON parse = JSONUtil.parse(body);
                 Integer photosCount = parse.getByPath("per_page", Integer.class);
-                for(int i = 0; i < photosCount; i++) {
+                for(int i = 0; i < Math.min(photosCount, 5); i++) {
                     ImageResource imageResource = ImageResource.builder()
                             .imageCategory(ImageCategoryEnum.CONTENT)
                             .imageName(query)
