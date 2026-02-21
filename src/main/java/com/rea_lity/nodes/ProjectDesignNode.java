@@ -3,11 +3,15 @@ package com.rea_lity.nodes;
 import com.rea_lity.AiService.ProjectDesignService;
 import com.rea_lity.common.SseEmitterContextHolder;
 import com.rea_lity.modle.enums.MessageTypeEnum;
+import com.rea_lity.service.ChatHistoryService;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
 import com.rea_lity.utils.SseEmitterSendUtil;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.openai.internal.chat.AssistantMessage;
+import dev.langchain4j.model.openai.internal.chat.Message;
+import dev.langchain4j.model.openai.internal.chat.SystemMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.BeforeToolExecution;
 import dev.langchain4j.service.tool.ToolExecution;
@@ -17,6 +21,7 @@ import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
@@ -31,11 +36,15 @@ public class ProjectDesignNode implements NodeAction<AiAgentContext> {
 
     @Resource
     private ProjectDesignService projectDesignServiceStream;
+    
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     private String chatStream(AiAgentContext aiAgentContext) {
         WorkFlowContext context = aiAgentContext.context();
         SseEmitter sseEmitter = SseEmitterContextHolder.get(context.getConversationId());
         SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行项目设计节点");
+        chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("开始执行项目设计节点").build());
         TokenStream tokenStream = projectDesignServiceStream.designStream(context.getConversationId(), context.getInitPrompt());
         final String[] design = {null};
         CountDownLatch latch = new CountDownLatch(1);
@@ -56,11 +65,13 @@ public class ProjectDesignNode implements NodeAction<AiAgentContext> {
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.TOOL_RESPONSE, toolExecution.result());
                 })
                 .onCompleteResponse((ChatResponse response) -> {
+                    chatHistoryService.addHistory(context.getConversationId(),AssistantMessage.builder().content(response.aiMessage().text()).build());
                     design[0] = response.aiMessage().text();
                     latch.countDown();
                 })
                 .onError((Throwable error) -> {
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.ERROR, error.getMessage());
+                    chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("设计节点出错：" + error.getMessage()).build());
                     log.error("ProjectDesignNode error", error);
                 })
                 .start();

@@ -3,19 +3,16 @@ package com.rea_lity.state;
 import com.rea_lity.modle.ImageCollectionPlan;
 import com.rea_lity.modle.ImageResource;
 import com.rea_lity.modle.enums.RouterEnums;
-import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.model.openai.internal.chat.Message;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.beans.Transient;
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.concurrent.locks.Lock;
+import java.util.List;
 
 @Data
 @Builder

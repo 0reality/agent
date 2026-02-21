@@ -3,9 +3,13 @@ package com.rea_lity.controller;
 import com.rea_lity.common.SseEmitterContextHolder;
 import com.rea_lity.graph.MainGraph;
 import com.rea_lity.modle.enums.MessageTypeEnum;
+import com.rea_lity.service.ChatHistoryService;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
 import com.rea_lity.utils.SseEmitterSendUtil;
+import dev.langchain4j.model.openai.internal.chat.Message;
+import dev.langchain4j.model.openai.internal.chat.UserMessage;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.StateGraph;
@@ -14,17 +18,25 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
 @Slf4j
 class WorkFlowController {
+
+    @Resource
+    private ChatHistoryService chatHistoryServiceImpl;
+
+
     @GetMapping("/workflow")
     public SseEmitter workflow(Long conversationId, String prompt) {
 
         SseEmitter emitter = new SseEmitter(0L);
-
+        List<Message> messages = new ArrayList<>();
+        messages.add(UserMessage.builder().content(prompt).build());
+        chatHistoryServiceImpl.addHistory(messages, conversationId);
         WorkFlowContext initData = WorkFlowContext.builder()
                 .nodesOutput(new ArrayList<>())
                 .conversationId(conversationId)

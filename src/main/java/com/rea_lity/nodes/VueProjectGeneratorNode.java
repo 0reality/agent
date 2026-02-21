@@ -4,11 +4,16 @@ import cn.hutool.core.util.StrUtil;
 import com.rea_lity.AiService.VueProjectGeneratorService;
 import com.rea_lity.common.SseEmitterContextHolder;
 import com.rea_lity.modle.enums.MessageTypeEnum;
+import com.rea_lity.service.ChatHistoryService;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
 import com.rea_lity.utils.SseEmitterSendUtil;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.openai.internal.chat.AssistantMessage;
+import dev.langchain4j.model.openai.internal.chat.Message;
+import dev.langchain4j.model.openai.internal.chat.SystemMessage;
+import dev.langchain4j.model.openai.internal.chat.ToolMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.BeforeToolExecution;
 import dev.langchain4j.service.tool.ToolExecution;
@@ -18,6 +23,7 @@ import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
@@ -32,6 +38,9 @@ public class VueProjectGeneratorNode implements NodeAction<AiAgentContext> {
 
     @Resource
     private VueProjectGeneratorService vueProjectGeneratorServiceStream;
+    
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     private String chat(AiAgentContext aiAgentContext, String prompt) {
         WorkFlowContext context = aiAgentContext.context();
@@ -48,7 +57,8 @@ public class VueProjectGeneratorNode implements NodeAction<AiAgentContext> {
             log.info("部署错误信息: {}", context.getDeployError());
             SseEmitter sseEmitter = SseEmitterContextHolder.get(aiAgentContext.context().getConversationId());
             SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行项目构建节点");
-            
+            chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("开始执行项目构建节点").build());
+
             // 构造 prompt - 确保不为空且安全
             String prompt = "请根据用户的要求构建/修改项目，使得他正确的执行。";
             String imageInfo = context.getImageResources() != null ? context.getImageResources().toString() : "无图片资源";
@@ -102,18 +112,22 @@ public class VueProjectGeneratorNode implements NodeAction<AiAgentContext> {
                 })
                 // 这将在工具执行之前调用。BeforeToolExecution 包含 ToolExecutionRequest（例如工具名称、工具参数等）
                 .beforeToolExecution((BeforeToolExecution beforeToolExecution) -> {
-                    SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.TOOL_CALL, beforeToolExecution.request().name());
+                    chatHistoryService.addHistory(context.getConversationId(),ToolMessage.builder().content("调用工具：" + beforeToolExecution.request().name() + "调用参数： " + beforeToolExecution.request().arguments()).build());
+                    SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.TOOL_CALL, "调用工具：" + beforeToolExecution.request().name() + "调用参数： " + beforeToolExecution.request().arguments());
                 })
                 // 这将在工具执行之后调用。ToolExecution 包含 ToolExecutionRequest 和工具执行结果。
                 .onToolExecuted((ToolExecution toolExecution) -> {
-                    SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.TOOL_RESPONSE, toolExecution.result());
+                    chatHistoryService.addHistory(context.getConversationId(),ToolMessage.builder().content("调用工具：" + toolExecution.request().name() + "执行结果： " + toolExecution.result()).build());
+                    SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.TOOL_RESPONSE, "调用工具：" + toolExecution.request().name() + "执行结果： " + toolExecution.result());
                 })
                 .onCompleteResponse((ChatResponse response) -> {
+                    chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content(response.aiMessage().text()).build());
                     s[0] = response.aiMessage().text();
                     latch.countDown();
                 })
                 .onError((Throwable error) -> {
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.ERROR, error.getMessage());
+                    chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("项目构建节点错误 ： " + error.getMessage()).build());
                     log.error("ProjectDesignNode error", error);
                 })
                 .start();

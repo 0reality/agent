@@ -2,22 +2,24 @@ package com.rea_lity.nodes;
 
 import cn.hutool.core.io.FileUtil;
 import com.rea_lity.AiService.CheckCodeService;
-import com.rea_lity.AiService.ProjectDesignService;
 import com.rea_lity.common.SseEmitterContextHolder;
 import com.rea_lity.constant.CommonConstant;
 import com.rea_lity.modle.enums.MessageTypeEnum;
+import com.rea_lity.service.ChatHistoryService;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
 import com.rea_lity.utils.SseEmitterSendUtil;
+import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.openai.internal.chat.Message;
+import dev.langchain4j.model.openai.internal.chat.SystemMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.BeforeToolExecution;
 import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
-import org.springframework.messaging.rsocket.annotation.ConnectMapping;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -38,13 +40,18 @@ public class CheckCodeNode implements NodeAction<AiAgentContext> {
 
     @Resource
     private CheckCodeService checkCodeServiceStream;
+    
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     private void chatStream(AiAgentContext aiAgentContext, String prompt) {
         SseEmitter sseEmitter = SseEmitterContextHolder.get(aiAgentContext.context().getConversationId());
         SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行代码审查节点");
+
         TokenStream tokenStream = checkCodeServiceStream.checkStream(prompt);
         WorkFlowContext context = aiAgentContext.context();
         CountDownLatch latch = new CountDownLatch(1);
+        chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("开始执行代码审查节点").build());
         tokenStream
                 .onPartialResponse((String partialResponse) -> {
                     log.info("partialResponse: {}", partialResponse);
@@ -66,10 +73,11 @@ public class CheckCodeNode implements NodeAction<AiAgentContext> {
                     aiAgentContext.context().setHasError(text.length() >= 20);
                     context.setDeployError(text);
                     latch.countDown();
-
+                    chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content(response.aiMessage().text()).build());
                 })
                 .onError((Throwable error) -> {
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.ERROR, error.getMessage());
+                    chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("代码审查节点出错" + error.getMessage()).build());
                     log.error("ProjectDesignNode error", error);
                 })
                 .start();

@@ -4,12 +4,16 @@ import com.rea_lity.common.SseEmitterContextHolder;
 import com.rea_lity.modle.ImageCollectionPlan;
 import com.rea_lity.modle.ImageResource;
 import com.rea_lity.modle.enums.MessageTypeEnum;
+import com.rea_lity.service.ChatHistoryService;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
 import com.rea_lity.tools.LogoGenerator;
 import com.rea_lity.tools.MermaidConverter;
 import com.rea_lity.tools.SearchImage;
 import com.rea_lity.utils.SseEmitterSendUtil;
+import dev.langchain4j.model.openai.internal.chat.AssistantMessage;
+import dev.langchain4j.model.openai.internal.chat.Message;
+import dev.langchain4j.model.openai.internal.chat.SystemMessage;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
@@ -30,17 +34,20 @@ public class ImageCollectionNode implements NodeAction<AiAgentContext> {
 
     @Resource
     ThreadPoolTaskExecutor imageCollectionThreadPool;
+    
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     @Override
     public Map<String, Object> apply(AiAgentContext aiAgentContext) throws Exception {
         WorkFlowContext context = aiAgentContext.context();
         ImageCollectionPlan imageCollectionPlan = context.getImageCollectionPlan();
-
         List<ImageResource> imageResources = new ArrayList<>();
 
         log.info("开始执行图片收集节点");
         SseEmitter sseEmitter = SseEmitterContextHolder.get(aiAgentContext.context().getConversationId());
         SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行图片收集节点");
+        chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("开始执行图片收集节点").build());
         if(imageCollectionPlan == null) {
             log.error("图片收集计划为null");
             throw new Exception("图片收集计划为null");
@@ -91,10 +98,12 @@ public class ImageCollectionNode implements NodeAction<AiAgentContext> {
             }
             context.setImageResources(imageResources);
             log.info("图片收集计划结果：{}", imageResources);
+            chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("图片收集成功，收集到" + imageResources.size() + "张图片").build());
             SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "图片收集成功，收集到" + imageResources.size() + "张图片");
             context.getNodesOutput().add(imageResources.toString());
         } catch (Exception e) {
             log.error("图片收集计划失败", e);
+            chatHistoryService.addHistory(context.getConversationId(),SystemMessage.builder().content("图片收集计划失败").build());
             context.getNodesOutput().add("图片收集计划失败");
         }
         context.setNodeName(NODE_NAME);
