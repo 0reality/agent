@@ -1,7 +1,10 @@
 package com.rea_lity.nodes;
 
+import cn.hutool.core.io.FileUtil;
+import com.rea_lity.AiService.CheckCodeService;
 import com.rea_lity.AiService.ProjectDesignService;
 import com.rea_lity.common.SseEmitterContextHolder;
+import com.rea_lity.constant.CommonConstant;
 import com.rea_lity.modle.enums.MessageTypeEnum;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
@@ -14,34 +17,37 @@ import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
+import org.springframework.messaging.rsocket.annotation.ConnectMapping;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-@Component
 @Slf4j
-public class ProjectDesignNode implements NodeAction<AiAgentContext> {
+@Component
+public class CheckCodeNode implements NodeAction<AiAgentContext> {
 
-    public static final String NODE_NAME = "ProjectDesignNode";
-
-    @Resource
-    private ProjectDesignService projectDesignService;
+    public static final String NODE_NAME = "CheckCodeNode";
 
     @Resource
-    private ProjectDesignService projectDesignServiceStream;
+    private CheckCodeService checkCodeService;
 
-    private String chatStream(AiAgentContext aiAgentContext) {
+    @Resource
+    private CheckCodeService checkCodeServiceStream;
+
+    private void chatStream(AiAgentContext aiAgentContext, String prompt) {
+        SseEmitter sseEmitter = SseEmitterContextHolder.get(aiAgentContext.context().getConversationId());
+        SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行代码审查节点");
+        TokenStream tokenStream = checkCodeServiceStream.checkStream(prompt);
         WorkFlowContext context = aiAgentContext.context();
-        SseEmitter sseEmitter = SseEmitterContextHolder.get(context.getConversationId());
-        SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行项目设计节点");
-        TokenStream tokenStream = projectDesignServiceStream.designStream(context.getConversationId(), context.getInitPrompt());
-        final String[] design = {null};
         CountDownLatch latch = new CountDownLatch(1);
         tokenStream
                 .onPartialResponse((String partialResponse) -> {
-                    log.info("ProjectDesignNode partialResponse: {}", partialResponse);
+                    log.info("partialResponse: {}", partialResponse);
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.ASSISTANT, partialResponse);
                 })
                 .onPartialThinking((PartialThinking partialThinking) -> {
@@ -56,8 +62,11 @@ public class ProjectDesignNode implements NodeAction<AiAgentContext> {
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.TOOL_RESPONSE, toolExecution.result());
                 })
                 .onCompleteResponse((ChatResponse response) -> {
-                    design[0] = response.aiMessage().text();
+                    String text = response.aiMessage().text();
+                    aiAgentContext.context().setHasError(text.length() >= 20);
+                    context.setDeployError(text);
                     latch.countDown();
+
                 })
                 .onError((Throwable error) -> {
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.ERROR, error.getMessage());
@@ -69,23 +78,21 @@ public class ProjectDesignNode implements NodeAction<AiAgentContext> {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return design[0];
     }
 
     public Map<String,Object> apply(AiAgentContext aiAgentContext) {
         WorkFlowContext context = aiAgentContext.context();
         try {
-            log.info("开始执行项目设计节点");
-            String design = null;
+            log.info("开始执行代码审查节点");
+            String prompt = getCode(context.getConversationId());
             if (!context.getStream()) {
-                design = chat(aiAgentContext);
+                chat(aiAgentContext, prompt);
             } else {
-                design = chatStream(aiAgentContext);
+                chatStream(aiAgentContext, prompt);
             }
-            log.info("项目设计结果：{}", design);
         } catch (Exception e){
-            log.error("项目设计失败", e);
-            context.getNodesOutput().add("项目设计失败");
+            log.error("代码审查失败", e);
+            context.getNodesOutput().add("代码审查失败");
         } finally {
             context.setNodeName(NODE_NAME);
         }
@@ -94,9 +101,41 @@ public class ProjectDesignNode implements NodeAction<AiAgentContext> {
 
     }
 
-    private String chat(AiAgentContext aiAgentContext) {
-        WorkFlowContext context = aiAgentContext.context();
-        return projectDesignService.design(context.getConversationId(), context.getInitPrompt());
+    private void chat(AiAgentContext aiAgentContext, String prompt) {
+        String checkCode = checkCodeService.checkCode(prompt);
+        aiAgentContext.context().setDeployError(checkCode);
+        aiAgentContext.context().setHasError(checkCode.length() >= 20);
     }
 
+    public String getCode(Long conversationId) {
+        String path = CommonConstant.ROOT_PATH + conversationId;
+
+        // 读取该文件夹下的所有文件 排除 dist node_modules public 文件夹
+        List<File> files = getAllFiles(new File(path));
+
+        StringBuilder sb = new StringBuilder();
+        for (File f : files) {
+            sb.append("文件名称：");
+            sb.append(f.getName());
+            sb.append("\n文件内容：");
+            sb.append(FileUtil.readUtf8String(f));
+        }
+        return sb.toString();
+    }
+
+    private List<File> getAllFiles(File file) {
+        File[] files = file.listFiles();
+        List<File> subFiles = new ArrayList<>();
+        List<String> ignore = List.of("public","node_modules","dist");
+        if (files != null) {
+            for (File f : files) {
+                if (f.isFile()) {
+                    subFiles.add(f);
+                } else if(!ignore.contains(f.getName())){
+                    subFiles.addAll(getAllFiles(f));
+                }
+            }
+        }
+        return subFiles;
+    }
 }

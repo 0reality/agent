@@ -1,17 +1,21 @@
 package com.rea_lity.nodes;
 
+import com.rea_lity.common.SseEmitterContextHolder;
 import com.rea_lity.modle.ImageCollectionPlan;
 import com.rea_lity.modle.ImageResource;
+import com.rea_lity.modle.enums.MessageTypeEnum;
 import com.rea_lity.state.AiAgentContext;
 import com.rea_lity.state.WorkFlowContext;
 import com.rea_lity.tools.LogoGenerator;
 import com.rea_lity.tools.MermaidConverter;
 import com.rea_lity.tools.SearchImage;
+import com.rea_lity.utils.SseEmitterSendUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +39,8 @@ public class ImageCollectionNode implements NodeAction<AiAgentContext> {
         List<ImageResource> imageResources = new ArrayList<>();
 
         log.info("开始执行图片收集节点");
+        SseEmitter sseEmitter = SseEmitterContextHolder.get(aiAgentContext.context().getConversationId());
+        SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行图片收集节点");
         if(imageCollectionPlan == null) {
             log.error("图片收集计划为null");
             throw new Exception("图片收集计划为null");
@@ -85,6 +91,7 @@ public class ImageCollectionNode implements NodeAction<AiAgentContext> {
             }
             context.setImageResources(imageResources);
             log.info("图片收集计划结果：{}", imageResources);
+            SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "图片收集成功，收集到" + imageResources.size() + "张图片");
             context.getNodesOutput().add(imageResources.toString());
         } catch (Exception e) {
             log.error("图片收集计划失败", e);

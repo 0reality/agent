@@ -14,5 +14,11 @@ public interface ImageCollectionPlanService {
      * 根据用户提示词分析需要收集的图片类型和参数
      */
     @SystemMessage(fromResource = "prompt/image-collection-plan-system-prompt.txt")
-    ImageCollectionPlan planImageCollection(@MemoryId Long memoryId, @UserMessage String userPrompt);
+    ImageCollectionPlan planImageCollectionByMemoryId(@MemoryId Long memoryId,@UserMessage("{{it}}") String userPrompt);
+
+    /**
+     * 根据用户提示词分析需要收集的图片类型和参数
+     */
+    @SystemMessage(fromResource = "prompt/image-collection-plan-system-prompt.txt")
+    ImageCollectionPlan planImageCollection(@UserMessage("{{it}}") String userPrompt);
 }

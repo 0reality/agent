@@ -7,8 +7,8 @@ import dev.langchain4j.service.UserMessage;
 
 public interface VueProjectGeneratorService {
     @SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
-    String generateVueProject(@MemoryId Long memoryId, @UserMessage String userPrompt);
+    String generateVueProject(@MemoryId Long memoryId,@UserMessage("{{it}}")String userPrompt);
 
     @SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
-    TokenStream generateVueProjectStream(@MemoryId Long memoryId, @UserMessage String userPrompt);
+    TokenStream generateVueProjectStream(@MemoryId Long memoryId,@UserMessage("{{it}}")String userPrompt);
 }

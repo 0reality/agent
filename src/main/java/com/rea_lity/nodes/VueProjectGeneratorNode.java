@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 @Slf4j
 @Component
@@ -45,6 +46,8 @@ public class VueProjectGeneratorNode implements NodeAction<AiAgentContext> {
             log.info("当前对话ID: {}", context.getConversationId());
             log.info("图片资源数量: {}", context.getImageResources() != null ? context.getImageResources().size() : 0);
             log.info("部署错误信息: {}", context.getDeployError());
+            SseEmitter sseEmitter = SseEmitterContextHolder.get(aiAgentContext.context().getConversationId());
+            SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "开始执行项目构建节点");
             
             // 构造 prompt - 确保不为空且安全
             String prompt = "请根据用户的要求构建/修改项目，使得他正确的执行。";
@@ -66,7 +69,7 @@ public class VueProjectGeneratorNode implements NodeAction<AiAgentContext> {
             } else {
                 s = chatStream(aiAgentContext ,prompt);
             }
-
+            SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.NODE, "项目构建成功");
             log.info("VueProjectGeneratorNode result length: {}", s != null ? s.length() : 0);
             context.getNodesOutput().add(s != null ? s : "生成结果为空");
         } catch (Exception e) {
@@ -85,11 +88,13 @@ public class VueProjectGeneratorNode implements NodeAction<AiAgentContext> {
 
     private String chatStream(AiAgentContext aiAgentContext, String prompt) {
         WorkFlowContext context = aiAgentContext.context();
-        SseEmitter sseEmitter = SseEmitterContextHolder.get();
+        SseEmitter sseEmitter = SseEmitterContextHolder.get(context.getConversationId());
         TokenStream tokenStream = vueProjectGeneratorServiceStream.generateVueProjectStream(context.getConversationId(), prompt);
         final String[] s = {null};
+        CountDownLatch latch = new CountDownLatch(1);
         tokenStream
                 .onPartialResponse((String partialResponse) -> {
+                    log.info("PartialResponse: {}", partialResponse);
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.ASSISTANT, partialResponse);
                 })
                 .onPartialThinking((PartialThinking partialThinking) -> {
@@ -105,12 +110,18 @@ public class VueProjectGeneratorNode implements NodeAction<AiAgentContext> {
                 })
                 .onCompleteResponse((ChatResponse response) -> {
                     s[0] = response.aiMessage().text();
+                    latch.countDown();
                 })
                 .onError((Throwable error) -> {
                     SseEmitterSendUtil.send(sseEmitter, MessageTypeEnum.ERROR, error.getMessage());
                     log.error("ProjectDesignNode error", error);
                 })
                 .start();
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         return s[0];
     }
 }

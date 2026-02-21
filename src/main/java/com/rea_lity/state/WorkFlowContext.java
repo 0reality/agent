@@ -15,6 +15,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
 
 @Data
 @Builder
@@ -69,6 +70,11 @@ public class WorkFlowContext implements Serializable {
      * 部署报错信息
      */
     private String deployError;
+
+    /**
+     * 是否有报错
+     */
+    private Boolean hasError;
 
     /**
      * 是否流式

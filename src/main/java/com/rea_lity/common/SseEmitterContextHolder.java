@@ -2,19 +2,22 @@ package com.rea_lity.common;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class SseEmitterContextHolder {
+
+    private static final Map<Long, SseEmitter> CONTEXT_HOLDER = new ConcurrentHashMap<>();
     
-    private static final ThreadLocal<SseEmitter> CONTEXT_HOLDER = new ThreadLocal<>();
-    
-    public static void set(SseEmitter emitter) {
-        CONTEXT_HOLDER.set(emitter);
+    public static void set(Long conversationId,SseEmitter emitter) {
+        CONTEXT_HOLDER.put(conversationId,emitter);
     }
     
-    public static SseEmitter get() {
-        return CONTEXT_HOLDER.get();
+    public static SseEmitter get(Long conversationId) {
+        return CONTEXT_HOLDER.get(conversationId);
     }
     
-    public static void clear() {
-        CONTEXT_HOLDER.remove();
+    public static void clear(Long conversationId) {
+        CONTEXT_HOLDER.remove(conversationId);
     }
 }

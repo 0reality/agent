@@ -25,6 +25,12 @@ class MainGraphTest {
     ChatMemoryProvider chatMemoryProvider;
 
     @Test
+    void test() throws GraphStateException {
+        StateGraph<AiAgentContext> mianGraph = MainGraph.createMianGraph();
+        CompiledGraph<AiAgentContext> compile = mianGraph.compile();
+    }
+
+    @Test
     void createMianGraph() throws GraphStateException {
         StateGraph<AiAgentContext> mianGraph = MainGraph.createMianGraph();
         CompiledGraph<AiAgentContext> compile = mianGraph.compile();

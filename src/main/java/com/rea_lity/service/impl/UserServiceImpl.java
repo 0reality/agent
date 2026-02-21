@@ -32,14 +32,14 @@ import java.util.stream.Collectors;
 import static com.rea_lity.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
-* @author rea_lity
-* @description 针对表【user(用户)】的数据库操作Service实现
-* @createDate 2026-02-09 15:41:47
-*/
+ * @author rea_lity
+ * @description 针对表【user(用户)】的数据库操作Service实现
+ * @createDate 2026-02-09 15:41:47
+ */
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
-    implements UserService{
+        implements UserService{
 
     /**
      * 盐值，混淆密码
@@ -226,7 +226,3 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return queryWrapper;
     }
 }
-
-
-
-

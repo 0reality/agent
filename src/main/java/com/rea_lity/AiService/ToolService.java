@@ -7,5 +7,5 @@ import dev.langchain4j.service.UserMessage;
 public interface ToolService {
 
     @SystemMessage("你是一个有利的助手")
-    String tool(@MemoryId Long memoryId, @UserMessage String input);
+    String tool(@MemoryId Long memoryId,@UserMessage("{{it}}")String input);
 }

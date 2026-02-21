@@ -7,5 +7,5 @@ import dev.langchain4j.service.UserMessage;
 
 public interface RouterNodeService {
     @SystemMessage(fromResource = "prompt/router-prompt.txt")
-    RouterEnums route(@MemoryId Long memoryId,@UserMessage String userPrompt);
+    RouterEnums route(@MemoryId Long memoryId, @UserMessage("{{it}}")String userPrompt);
 }

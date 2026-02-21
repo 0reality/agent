@@ -7,6 +7,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Slf4j
 public class SseEmitterSendUtil {
     public static void send(SseEmitter sseEmitter, MessageTypeEnum msgType, String msg) {
+        if(sseEmitter == null)return;
         try {
             sseEmitter.send(SseEmitter.event()
                     .name(msgType.name())

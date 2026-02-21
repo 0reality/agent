@@ -15,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @Slf4j
@@ -22,9 +23,8 @@ class WorkFlowController {
     @GetMapping("/workflow")
     public SseEmitter workflow(Long conversationId, String prompt) {
 
-        SseEmitter emitter = new SseEmitter(0L); // 设置为永不超时
+        SseEmitter emitter = new SseEmitter(0L);
 
-        // 创建一个不包含 SseEmitter 的初始数据
         WorkFlowContext initData = WorkFlowContext.builder()
                 .nodesOutput(new ArrayList<>())
                 .conversationId(conversationId)
@@ -33,36 +33,65 @@ class WorkFlowController {
                 .stream(true)
                 .build();
 
-        // 使用 ThreadLocal 存储 emitter，避免序列化问题
-        SseEmitterContextHolder.set(emitter);
+        SseEmitterContextHolder.set(conversationId, emitter);
 
-        try {
-            StateGraph<AiAgentContext> mainGraph = MainGraph.createMianGraph();
-            CompiledGraph<AiAgentContext> compile = mainGraph.compile();
+        CompletableFuture.runAsync(() -> {
 
-            for (var item : compile.stream(Map.of(AiAgentContext.CONTEXT_KEY, initData))) {
-                Integer currentStepCount = item.state().context().getCurrentStepCount();
+            try {
+                StateGraph<AiAgentContext> mainGraph = MainGraph.createMianGraph();
+                CompiledGraph<AiAgentContext> compile = mainGraph.compile();
 
-                // 从 ThreadLocal 获取 emitter
-                SseEmitter currentEmitter = SseEmitterContextHolder.get();
-                if (currentEmitter != null) {
-                    SseEmitterSendUtil.send(currentEmitter, MessageTypeEnum.SYSTEM,
-                            "第" + currentStepCount + "步：" + item.node() + "开始执行");
+                for (var item : compile.stream(
+                        Map.of(AiAgentContext.CONTEXT_KEY, initData))) {
+
+                    Integer currentStepCount =
+                            item.state().context().getCurrentStepCount();
+
+                    SseEmitter currentEmitter =
+                            SseEmitterContextHolder.get(conversationId);
+
+                    if (currentEmitter != null) {
+                        SseEmitterSendUtil.send(
+                                currentEmitter,
+                                MessageTypeEnum.SYSTEM,
+                                "第" + currentStepCount + "步：" +
+                                        item.node() + "开始执行"
+                        );
+                    }
+
+                    item.state().context()
+                            .setCurrentStepCount(currentStepCount + 1);
                 }
 
-                currentStepCount += 1;
-                item.state().context().setCurrentStepCount(currentStepCount);
+                // 👇 正常结束
+                SseEmitter currentEmitter =
+                        SseEmitterContextHolder.get(conversationId);
+
+                if (currentEmitter != null) {
+                    currentEmitter.complete();
+                }
+
+            } catch (Exception e) {
+
+                log.error("工作流执行异常", e);
+
+                SseEmitter currentEmitter =
+                        SseEmitterContextHolder.get(conversationId);
+
+                if (currentEmitter != null) {
+                    SseEmitterSendUtil.send(
+                            currentEmitter,
+                            MessageTypeEnum.ERROR,
+                            "工作流执行异常: " + e.getMessage()
+                    );
+                    currentEmitter.completeWithError(e);
+                }
+
+            } finally {
+                SseEmitterContextHolder.clear(conversationId);
             }
-        } catch (Exception e) {
-            log.error("工作流执行异常", e);
-            SseEmitter currentEmitter = SseEmitterContextHolder.get();
-            if (currentEmitter != null) {
-                SseEmitterSendUtil.send(currentEmitter, MessageTypeEnum.ERROR, "工作流执行异常: " + e.getMessage());
-            }
-        } finally {
-            // 清理 ThreadLocal
-            SseEmitterContextHolder.clear();
-        }
+
+        });
 
         return emitter;
     }

@@ -11,10 +11,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
-* @author rea_lity
-* @description 针对表【user(用户)】的数据库操作Service
-* @createDate 2026-02-09 15:41:47
-*/
+ * @author rea_lity
+ * @description 针对表【user(用户)】的数据库操作Service
+ * @createDate 2026-02-09 15:41:47
+ */
 public interface UserService extends IService<User> {
     /**
      * 用户注册

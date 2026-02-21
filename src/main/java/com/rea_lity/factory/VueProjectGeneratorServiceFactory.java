@@ -35,7 +35,6 @@ public class VueProjectGeneratorServiceFactory {
                 .chatModel(chatModel)
                 .tools(
                         new OperationFile(),
-                        new VueProjectBuilder(),
                         new DirectoryReader(),
                         new ExistTool()
                 )
@@ -57,7 +56,6 @@ public class VueProjectGeneratorServiceFactory {
                 .streamingChatModel(streamingChatModel)
                 .tools(
                         new OperationFile(),
-                        new VueProjectBuilder(),
                         new DirectoryReader(),
                         new ExistTool()
                 )

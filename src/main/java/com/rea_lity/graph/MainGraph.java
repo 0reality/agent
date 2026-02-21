@@ -1,6 +1,5 @@
 package com.rea_lity.graph;
 
-import com.rea_lity.AiService.ImageCollectionPlanService;
 import com.rea_lity.modle.enums.RouterEnums;
 import com.rea_lity.nodes.*;
 import com.rea_lity.state.AiAgentContext;
@@ -9,7 +8,6 @@ import com.rea_lity.utils.SpringContextUtils;
 import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.StateGraph;
 import org.bsc.langgraph4j.action.EdgeAction;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
@@ -27,11 +25,18 @@ public class MainGraph {
         ImageCollectionPlanNode imageCollectionPlanNode = SpringContextUtils.getBean(ImageCollectionPlanNode.class);
         ImageCollectionNode imageCollectionNode = SpringContextUtils.getBean(ImageCollectionNode.class);
         VueProjectGeneratorNode vueProjectGeneratorNode = SpringContextUtils.getBean(VueProjectGeneratorNode.class);
+        CheckCodeNode checkCodeNode = SpringContextUtils.getBean(CheckCodeNode.class);
+        DeployNode deployNode = SpringContextUtils.getBean(DeployNode.class);
 
         EdgeAction<AiAgentContext> edgeAction = aiAgentContext -> {
             WorkFlowContext context = aiAgentContext.context();
             RouterEnums router = context.getRouter();
             return router.toString();
+        };
+
+        EdgeAction<AiAgentContext> edgeActionCheckCode = aiAgentContext -> {
+            WorkFlowContext context = aiAgentContext.context();
+            return String.valueOf(context.getHasError() != null && context.getHasError());
         };
 
         return new StateGraph<>(AiAgentContext.SCHEMA, AiAgentContext::new)
@@ -40,6 +45,8 @@ public class MainGraph {
                 .addNode(ImageCollectionPlanNode.NODE_NAME, node_async(imageCollectionPlanNode))
                 .addNode(ImageCollectionNode.NODE_NAME, node_async(imageCollectionNode))
                 .addNode(VueProjectGeneratorNode.NODE_NAME, node_async(vueProjectGeneratorNode))
+                .addNode(CheckCodeNode.NODE_NAME, node_async(checkCodeNode))
+                .addNode(DeployNode.NODE_NAME, node_async(deployNode))
 
                 // Define edges
                 .addEdge(START, RouterNode.NODE_NAME)
@@ -51,7 +58,12 @@ public class MainGraph {
                 .addEdge(ProjectDesignNode.NODE_NAME, END)
                 .addEdge(ImageCollectionPlanNode.NODE_NAME, ImageCollectionNode.NODE_NAME)
                 .addEdge(ImageCollectionNode.NODE_NAME, VueProjectGeneratorNode.NODE_NAME)
-                .addEdge(VueProjectGeneratorNode.NODE_NAME, END)
+                .addEdge(VueProjectGeneratorNode.NODE_NAME, CheckCodeNode.NODE_NAME)
+                .addConditionalEdges(CheckCodeNode.NODE_NAME, edge_async(edgeActionCheckCode), Map.of(
+                        "false", DeployNode.NODE_NAME,
+                        "true", VueProjectGeneratorNode.NODE_NAME
+                ))
+                .addEdge(DeployNode.NODE_NAME, END)
                 ;
     }
 }

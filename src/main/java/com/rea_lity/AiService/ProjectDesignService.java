@@ -8,9 +8,9 @@ import dev.langchain4j.service.UserMessage;
 public interface ProjectDesignService {
 
     @SystemMessage(fromResource = "prompt/project-design-prompt.txt")
-    String design(@MemoryId Long memoryId, @UserMessage String userPrompt);
+    String design(@MemoryId Long memoryId,@UserMessage("{{it}}") String userPrompt);
 
     @SystemMessage(fromResource = "prompt/project-design-prompt.txt")
-    TokenStream designStream(@MemoryId Long memoryId, @UserMessage String userPrompt);
+    TokenStream designStream(@MemoryId Long memoryId,@UserMessage("{{it}}") String userPrompt);
 
 }
