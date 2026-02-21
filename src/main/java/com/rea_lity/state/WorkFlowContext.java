@@ -8,7 +8,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.beans.Transient;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
@@ -69,7 +71,7 @@ public class WorkFlowContext implements Serializable {
     private String deployError;
 
     /**
-     * 流式输出处理
+     * 是否流式
      */
-    private TokenStream tokenStream;
+    private Boolean stream;
 }
